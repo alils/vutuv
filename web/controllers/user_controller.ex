@@ -109,14 +109,18 @@ defmodule Vutuv.UserController do
 
     # Find Recommended users
     user_tag = Repo.one(from w in assoc(user, :user_tags), join: t in assoc(w, :tag), order_by: w.inserted_at, limit: 1)
+    reccomended_users = 
+      if user_tag do
+        Vutuv.Tag.reccomended_users(Repo.get(Vutuv.Tag, user_tag.tag_id))
+      else
+        Repo.all(from u in User, left_join: f in assoc(u, :followers), group_by: u.id, order_by: [fragment("count(?) DESC", f.id), u.first_name, u.last_name], limit: 6)
+      end
+
     if user_tag do
-      reccomended_users = Vutuv.Tag.reccomended_users(Repo.get(Vutuv.Tag, user_tag.tag_id))
       if reccomended_users = [user] do
         # It's an exotic tag and only the user itself comes up.
         reccomended_users = Repo.all(from u in User, left_join: f in assoc(u, :followers), group_by: u.id, order_by: [fragment("count(?) DESC", f.id), u.first_name, u.last_name], limit: 6)
       end
-    else
-      reccomended_users = Repo.all(from u in User, left_join: f in assoc(u, :followers), group_by: u.id, order_by: [fragment("count(?) DESC", f.id), u.first_name, u.last_name], limit: 6)
     end
     work_string_length = 35
 
